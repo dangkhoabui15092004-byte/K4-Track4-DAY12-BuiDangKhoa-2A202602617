@@ -20,7 +20,7 @@
 | IDM | 1.524 | 0.07% | (baseline) |
 | EgoMLP | 0.755 .. 0.766 (mean 0.760) | 12.94% .. 30.49% (mean 22.41%) | BLOCK |
 | PercMLP | 0.617 .. 0.629 (mean 0.623) | 0.42% .. 1.28% (mean 0.81%) | BLOCK |
-| PercMLP+ (sau khi sửa) | 0.803 .. 0.819 (mean 0.813) | 0.21% .. 0.24% (mean 0.22%) | RELEASE |
+| PercMLP+ (sau khi sửa) | 0.795 .. 0.820 (mean 0.809) | 0.21% .. 0.24% (mean 0.23%) | RELEASE |
 
 ## Câu 1 · Dữ liệu
 Bước 0 bạn phát hiện những vấn đề gì ở dữ liệu? Vì sao không dùng cột `Acc_LV`, và bạn thay bằng gì? Bao nhiêu quỹ đạo bị loại vì trùng, và vì sao chia theo quỹ đạo?
@@ -77,7 +77,7 @@ Bảng so sánh tác động của xe sau trên lưới kịch bản cắt vào 
 | IDM | 80.85% (70.63%) | 10.22% (0.00%) |
 | EgoMLP | 84.67% (0.00%) | 84.67% (0.00%) |
 | PercMLP | 76.26% (38.78%) | 37.59% (0.00%) |
-| PercMLP+ | 80.44% (69.93%) | 10.52% (0.00%) |
+| PercMLP+ | 80.44% (69.93%) | 11.26% (0.00%) |
 
 - Thời khoảng cách $T$ tối ưu được hiệu chỉnh là $T = 1.4$ s, đạt khoảng cách Wasserstein-1 $W_1 = 0.350$ so với phân bố thời khoảng cách của tài xế con người trong log (trung vị 1.84 s). Con số này chân thực hơn hẳn so với một tác nhân không bao giờ phản ứng ($W_1 = 0.832$).
 - Khi xe sau chỉ "phát lại" hành vi cũ từ log, nó hoàn toàn mù trước việc xe thử nghiệm (IDM) vừa chủ động phanh gấp để tránh xe phía trước cắt vào. Do không biết xe trước phanh, xe sau lao thẳng tới và đâm vào đuôi xe IDM, tạo ra tới 70.63% "va chạm giả" từ phía sau, nâng tổng va chạm của IDM lên 80.85% (trông tệ như const-vel 80.63%).
@@ -92,8 +92,8 @@ Quy trình đánh giá cổng phát hành (`evidence/gate.json`, `fix.json`):
    - Thiếu dữ liệu phân phối lạ (Covariate shift / OOD): Log đường thật chủ yếu là lái xe đều đặn, không có tình huống xe cắt vào ở khoảng cách ngắn và tốc độ chênh lệch cao, khiến PercMLP đâm tới 27.37% trên lưới kịch bản (R4).
    - Tích tụ sai số điều khiển (Compounding errors): Khi xe tự lái trong vòng kín, các sai số nhỏ đẩy xe vào trạng thái lạ chưa từng gặp trong log, làm mô hình hoảng loạn và đâm (R2, R3).
 3. Biện pháp sửa: Thêm 197,180 cửa sổ kịch bản cắt vào mô phỏng (`cutin_windows`) và áp dụng 2 vòng DAgger (`dagger_windows`, tổng cộng gần 895,000 cửa sổ) để cho mô hình tự lái, thu thập đúng các trạng thái nó tự đi vào và gán nhãn bằng dự báo của chuyên gia IDM. DAgger dạy mô hình cách tự khôi phục khi lệch khỏi quỹ đạo chuẩn, giải quyết triệt để 2 nguyên nhân gốc.
-4. Sau khi sửa, PercMLP+ đạt RELEASE với cả 7 quy tắc: R2 giảm còn 0.24% (cận trên 0.50% <= 1.07%), R3 còn 0.51% (cận trên 2.80% <= 5.51%), R4 giảm ngoạn mục từ 27.37% xuống 0.30% (<= 2.0%), R6 giảm còn 10.52% (<= 12.22%).
-5. PercMLP+ KHÔNG hề "tốt hơn" IDM; nó chỉ đạt mức "không kém hơn" baseline (non-inferior), bởi vì nhãn huấn luyện sửa sai của nó được sinh ra hoàn toàn từ chính thuật toán IDM (học trò học từ thầy thì không thể vượt qua thầy trong miền bài toán giả định). Đáng chú ý, L2 vòng hở của PercMLP+ còn tăng từ 0.623 m lên 0.813 m, tái khẳng định điểm số vòng hở không phản ánh độ an toàn. Đề xuất: Chưa nên phát hành ngay để thay thế IDM; cần triển khai thử nghiệm ở chế độ bóng (Shadow Mode) trên xe thật, bổ sung kiểm thử với cảm biến đa dạng và luôn giữ bộ quy tắc luật IDM làm cơ chế an toàn dự phòng (safety fallback).
+4. Sau khi sửa, PercMLP+ đạt RELEASE với cả 7 quy tắc: R2 giảm còn 0.24% (cận trên 0.50% <= 1.07%), R3 còn 0.51% (cận trên 2.80% <= 5.51%), R4 giảm ngoạn mục từ 27.37% xuống 1.04% (<= 2.0%), R6 giảm còn 11.26% (<= 12.22%).
+5. PercMLP+ KHÔNG hề "tốt hơn" IDM; nó chỉ đạt mức "không kém hơn" baseline (non-inferior), bởi vì nhãn huấn luyện sửa sai của nó được sinh ra hoàn toàn từ chính thuật toán IDM (học trò học từ thầy thì không thể vượt qua thầy trong miền bài toán giả định). Đáng chú ý, L2 vòng hở của PercMLP+ còn tăng từ 0.623 m lên 0.809 m, tái khẳng định điểm số vòng hở không phản ánh độ an toàn. Đề xuất: Chưa nên phát hành ngay để thay thế IDM; cần triển khai thử nghiệm ở chế độ bóng (Shadow Mode) trên xe thật, bổ sung kiểm thử với cảm biến đa dạng và luôn giữ bộ quy tắc luật IDM làm cơ chế an toàn dự phòng (safety fallback).
 
 ## Câu 8 · Bài lab này không chứng minh được gì
 Chọn **ít nhất ba** giới hạn quan trọng nhất đối với việc quyết định phát hành và giải thích vì sao mỗi cái làm kết luận của bạn kém chắc chắn. Điều gì cần làm tiếp để thu hẹp khoảng cách đến thế giới thật?
